@@ -1,5 +1,5 @@
 <p align="center">
-  <a href="https://redduck.io">
+  <a href="https://redduck.io/?utm_source=github&amp;utm_medium=readme&amp;utm_campaign=redduck-academy-solana-template">
     <picture>
       <source media="(prefers-color-scheme: dark)" srcset=".github/assets/redduck-logo-dark.svg">
       <img src=".github/assets/redduck-logo.svg" alt="RedDuck" width="240">
@@ -15,7 +15,7 @@
 
 ---
 
-An Anchor + Rust learning template by [RedDuck](https://redduck.io) — a numbered series of tasks with a read-the-brief, implement, test workflow. Each task is an on-chain Anchor program you fill in, tested with [bankrun](https://kevinheavey.github.io/solana-bankrun/): a fast in-process bank, no local validator and no airdrops. It's one Anchor workspace, but every task builds and tests on its own, so an unfinished program never blocks another.
+An Anchor + Rust learning template by [RedDuck](https://redduck.io/?utm_source=github&utm_medium=readme&utm_campaign=redduck-academy-solana-template) — a numbered series of tasks with a read-the-brief, implement, test workflow. Each task is an on-chain Anchor program you fill in, tested with [bankrun](https://kevinheavey.github.io/solana-bankrun/): a fast in-process bank, no local validator and no airdrops. It's one Anchor workspace, but every task builds and tests on its own, so an unfinished program never blocks another.
 
 ## Built with
 
