@@ -11,6 +11,7 @@ pub struct TierOf<'info> {
     #[account(
         seeds = [DONOR_SEED, donor.key().as_ref()],
         bump,
+        has_one = donor,
     )]
     pub donor_record: Account<'info, DonorRecord>,
 }
