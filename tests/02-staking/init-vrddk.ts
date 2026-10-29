@@ -1,15 +1,54 @@
-import { Keypair, PublicKey } from "@solana/web3.js";
+import { Keypair, PublicKey, SystemProgram, Transaction } from "@solana/web3.js";
 import { ProgramTestContext } from "solana-bankrun";
+import {
+  ExtensionType,
+  TOKEN_2022_PROGRAM_ID,
+  createInitializeMint2Instruction,
+  createInitializeNonTransferableMintInstruction,
+  getMintLen,
+} from "@solana/spl-token";
+import { processTransaction } from "../helpers";
 
 /**
- * TODO(you): create the vRDDK mint and return its address. It must be
- * non-transferable, with mint authority = `mintAuthority`.
+ * Create the vRDDK mint and return its address. It is
+ * non-transferable (Token-2022), with mint authority = `mintAuthority`.
  */
 export const createVrddkMint = async (
-  _context: ProgramTestContext,
-  _payer: Keypair,
-  _mintAuthority: PublicKey,
-  _decimals: number,
+  context: ProgramTestContext,
+  payer: Keypair,
+  mintAuthority: PublicKey,
+  decimals: number,
 ): Promise<PublicKey> => {
-  throw new Error("TODO: create the vRDDK Token-2022 non-transferable mint");
+  const mint = Keypair.generate();
+  const extensions = [ExtensionType.NonTransferable];
+  const mintLen = getMintLen(extensions);
+  const rent = await context.banksClient.getRent();
+  const lamports = Number(rent.minimumBalance(BigInt(mintLen)));
+
+  await processTransaction(
+    context,
+    new Transaction().add(
+      SystemProgram.createAccount({
+        fromPubkey: payer.publicKey,
+        newAccountPubkey: mint.publicKey,
+        space: mintLen,
+        lamports,
+        programId: TOKEN_2022_PROGRAM_ID,
+      }),
+      createInitializeNonTransferableMintInstruction(
+        mint.publicKey,
+        TOKEN_2022_PROGRAM_ID,
+      ),
+      createInitializeMint2Instruction(
+        mint.publicKey,
+        decimals,
+        mintAuthority,
+        null,
+        TOKEN_2022_PROGRAM_ID,
+      ),
+    ),
+    [payer, mint],
+  );
+
+  return mint.publicKey;
 };

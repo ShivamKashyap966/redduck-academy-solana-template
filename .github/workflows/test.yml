@@ -31,3 +31,9 @@ jobs:
           ls -la target/deploy
           ls -la target/idl
           npx ts-mocha -p ./tsconfig.json -t 1000000 tests/01-donor-vault/*.test.ts
+      - name: Build staking and run task 02 tests
+        run: |
+          anchor build -p staking -- -v
+          ls -la target/deploy
+          ls -la target/idl
+          npx ts-mocha -p ./tsconfig.json -t 1000000 tests/02-staking/*.test.ts
