@@ -1,15 +1,20 @@
 use anchor_lang::prelude::*;
 
-use crate::state::Tier;
+use crate::constants::DONOR_SEED;
+use crate::state::{DonorRecord, Tier};
 
 #[derive(Accounts)]
 pub struct TierOf<'info> {
-    // TODO: a read-only "view" — you need the donor (only to derive the PDA) and
-    // their donor record.
+    /// CHECK: The donor address whose tier is being queried
+    pub donor: UncheckedAccount<'info>,
+
+    #[account(
+        seeds = [DONOR_SEED, donor.key().as_ref()],
+        bump,
+    )]
+    pub donor_record: Account<'info, DonorRecord>,
 }
 
-pub fn tier_of(_ctx: Context<TierOf>) -> Result<Tier> {
-    // TODO: return the donor's tier from their total. Anchor sends the value back
-    // as return data; the test reads it from a simulated call.
-    todo!()
+pub fn tier_of(ctx: Context<TierOf>) -> Result<Tier> {
+    Ok(Tier::from_total(ctx.accounts.donor_record.total))
 }

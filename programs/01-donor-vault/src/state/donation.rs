@@ -1,9 +1,12 @@
 use anchor_lang::prelude::*;
 
+use crate::constants::MAX_MESSAGE_LEN;
+
 #[account]
 #[derive(InitSpace)]
 pub struct Donation {
-    // TODO: a single gift — what's worth recording about it?
-    // Hint: a String field needs `#[max_len(MAX_MESSAGE_LEN)]` so the account
-    // stays a fixed size.
+    pub amount: u64,
+    pub timestamp: i64,
+    #[max_len(MAX_MESSAGE_LEN)]
+    pub message: String,
 }
