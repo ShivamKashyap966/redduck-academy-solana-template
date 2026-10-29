@@ -43,3 +43,9 @@ jobs:
           ls -la target/deploy
           ls -la target/idl
           npx ts-mocha -p ./tsconfig.json -t 1000000 tests/04-merkle-airdrop/*.test.ts
+      - name: Build raffle and run task 05 tests
+        run: |
+          anchor build -p raffle -- -v
+          ls -la target/deploy
+          ls -la target/idl
+          npx ts-mocha -p ./tsconfig.json -t 1000000 tests/05-raffle/*.test.ts

@@ -1,11 +1,19 @@
+import * as anchor from "@coral-xyz/anchor";
 import { Program } from "@coral-xyz/anchor";
-import { ProgramTestContext } from "solana-bankrun";
-import { Keypair, PublicKey } from "@solana/web3.js";
+import { BankrunProvider } from "anchor-bankrun";
+import * as fs from "fs";
+import * as path from "path";
+import { AddedAccount, ProgramTestContext, start } from "solana-bankrun";
+import {
+  Keypair,
+  LAMPORTS_PER_SOL,
+  PublicKey,
+  SystemProgram,
+} from "@solana/web3.js";
 
 import { Raffle } from "../../target/types/raffle";
 import idl from "../../target/idl/raffle.json";
 import {
-  initBankrun,
   createMintAndFund,
   sendIxs,
   oneToken,
@@ -27,7 +35,68 @@ export interface RaffleFixture {
 }
 
 export const setupRaffle = async (): Promise<RaffleFixture> => {
-  const { context, program, accounts } = await initBankrun(idl as Raffle);
+  const deployDir = path.resolve("target/deploy");
+  if (!fs.existsSync(deployDir)) {
+    fs.mkdirSync(deployDir, { recursive: true });
+  }
+  const mockVrfDest = path.join(deployDir, "mock_vrf.so");
+  const fixtureSrc = path.resolve("tests/fixtures/mock_vrf.so");
+  if (!fs.existsSync(mockVrfDest) && fs.existsSync(fixtureSrc)) {
+    fs.copyFileSync(fixtureSrc, mockVrfDest);
+  }
+
+  process.env.SBF_OUT_DIR = process.env.SBF_OUT_DIR ?? deployDir;
+  process.env.BPF_OUT_DIR = process.env.BPF_OUT_DIR ?? deployDir;
+
+  const accounts: Keypair[] = [];
+  const accountsToInject: AddedAccount[] = [];
+
+  for (let i = 0; i < 10; i++) {
+    const keypair = Keypair.generate();
+    accounts.push(keypair);
+
+    accountsToInject.push({
+      address: keypair.publicKey,
+      info: {
+        lamports: 1000 * LAMPORTS_PER_SOL,
+        data: Buffer.alloc(0),
+        owner: SystemProgram.programId,
+        executable: false,
+        rentEpoch: 0,
+      },
+    });
+  }
+
+  const oracleQueuePubkey = new PublicKey(
+    "Cuj97ggrhhidhbu39TijNVqE74xvKJ69gDervRUXAxGh",
+  );
+  accountsToInject.push({
+    address: oracleQueuePubkey,
+    info: {
+      lamports: 1000 * LAMPORTS_PER_SOL,
+      data: Buffer.alloc(0),
+      owner: SystemProgram.programId,
+      executable: false,
+      rentEpoch: 0,
+    },
+  });
+
+  const vrfProgramPubkey = new PublicKey(
+    "Vrf1RNUjXmQGjmQrQLvJHs9SNkvDJEsRVFPkfSQUwGz",
+  );
+
+  const programs = [
+    { name: "raffle", programId: new PublicKey(idl.address) },
+  ];
+  if (fs.existsSync(mockVrfDest)) {
+    programs.push({ name: "mock_vrf", programId: vrfProgramPubkey });
+  }
+
+  const context = await start(programs, accountsToInject);
+  const provider = new BankrunProvider(context);
+  anchor.setProvider(provider);
+
+  const program = new Program<Raffle>(idl as Raffle, provider);
   const payer = context.payer;
   const oracle = Keypair.generate();
 
