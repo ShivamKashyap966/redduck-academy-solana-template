@@ -66,10 +66,11 @@ impl Modern for backward_compat::Pubkey {
     type Modern = latest::Pubkey;
 
     fn modern(self) -> Self::Modern {
-        self.to_bytes().into()
+        self
     }
 }
 
+#[cfg(not(feature = "backward-compat"))]
 impl Modern for latest::Pubkey {
     type Modern = latest::Pubkey;
 
@@ -83,14 +84,11 @@ impl Modern for backward_compat::AccountMeta {
     type Modern = latest::AccountMeta;
 
     fn modern(self) -> Self::Modern {
-        latest::AccountMeta {
-            pubkey: self.pubkey.modern(),
-            is_signer: self.is_signer,
-            is_writable: self.is_writable,
-        }
+        self
     }
 }
 
+#[cfg(not(feature = "backward-compat"))]
 impl Modern for latest::AccountMeta {
     type Modern = latest::AccountMeta;
 
@@ -104,14 +102,11 @@ impl Modern for backward_compat::Instruction {
     type Modern = latest::Instruction;
 
     fn modern(self) -> Self::Modern {
-        latest::Instruction {
-            program_id: self.program_id.modern(),
-            accounts: self.accounts.modern(),
-            data: self.data,
-        }
+        self
     }
 }
 
+#[cfg(not(feature = "backward-compat"))]
 impl Modern for latest::Instruction {
     type Modern = latest::Instruction;
 
@@ -132,7 +127,7 @@ impl Compat for latest::Pubkey {
     type Compat = Pubkey;
 
     fn compat(self) -> Self::Compat {
-        self.to_bytes().into()
+        self
     }
 }
 
@@ -140,11 +135,7 @@ impl Compat for latest::AccountMeta {
     type Compat = AccountMeta;
 
     fn compat(self) -> Self::Compat {
-        AccountMeta {
-            pubkey: self.pubkey.compat(),
-            is_signer: self.is_signer,
-            is_writable: self.is_writable,
-        }
+        self
     }
 }
 
@@ -152,11 +143,7 @@ impl Compat for latest::Instruction {
     type Compat = Instruction;
 
     fn compat(self) -> Self::Compat {
-        Instruction {
-            program_id: self.program_id.compat(),
-            accounts: self.accounts.compat(),
-            data: self.data,
-        }
+        self
     }
 }
 
