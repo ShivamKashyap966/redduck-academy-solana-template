@@ -30,19 +30,19 @@ mod backward_compat {
 pub(crate) mod latest {
     #[cfg(not(feature = "backward-compat"))]
     pub use borsh_current as borsh;
-    pub use solana_program::instruction::{AccountMeta, Instruction};
+    pub use solana_program_compat::instruction::{AccountMeta, Instruction};
     #[cfg(not(feature = "backward-compat"))]
-    pub use solana_program::pubkey;
-    pub use solana_program::pubkey::Pubkey;
+    pub use solana_program_compat::pubkey;
+    pub use solana_program_compat::pubkey::Pubkey;
     #[allow(deprecated)]
-    pub use solana_program::system_program;
+    pub use solana_program_compat::system_program;
 
     #[cfg(feature = "anchor-modern")]
     pub use anchor_lang_current as anchor_lang;
 
     pub mod slot_hashes {
         pub const ID: super::Pubkey =
-            solana_program::pubkey!("SysvarS1otHashes111111111111111111111111111");
+            solana_program_compat::pubkey!("SysvarS1otHashes111111111111111111111111111");
     }
 }
 

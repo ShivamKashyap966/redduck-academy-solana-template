@@ -79,8 +79,7 @@ package = "borsh"
 [dependencies.ephemeral-vrf-sdk-vrf-macro]
 version = "0.3.0"
 
-[dependencies.solana-program]
-version = ">=1.18.26, <3"
+
 
 [dependencies.solana-program-compat]
 version = ">=1.18.26, <3"
