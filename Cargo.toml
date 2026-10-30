@@ -3,8 +3,7 @@ members = ["programs/*"]
 resolver = "2"
 
 [patch.crates-io]
-solana-system-interface = { path = "crates/solana-system-interface" }
-wincode = { path = "crates/wincode" }
+ephemeral-vrf-sdk = { path = "crates/ephemeral-vrf-sdk" }
 
 [profile.release]
 overflow-checks = true
