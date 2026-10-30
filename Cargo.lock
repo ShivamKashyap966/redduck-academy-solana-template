@@ -3027,8 +3027,6 @@ dependencies = [
 [[package]]
 name = "solana-system-interface"
 version = "3.2.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "55b54965bf0b76fa8e2b35376583efddd4d916618cfe595bf48c7d7b55a9e628"
 dependencies = [
  "num-traits",
  "serde",
@@ -3800,8 +3798,6 @@ dependencies = [
 [[package]]
 name = "wincode"
 version = "0.5.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b32acb3b7c291af87820e4339459a2c61c24fd13be8809aab2464aed6decf376"
 dependencies = [
  "pastey",
  "proc-macro2",

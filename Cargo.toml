@@ -2,6 +2,10 @@
 members = ["programs/*"]
 resolver = "2"
 
+[patch.crates-io]
+solana-system-interface = { path = "crates/solana-system-interface" }
+wincode = { path = "crates/wincode" }
+
 [profile.release]
 overflow-checks = true
 lto = "fat"
