@@ -21,7 +21,7 @@ pub struct ClaimWithSignature<'info> {
     pub config: Account<'info, Config>,
 
     #[account(
-        init_if_needed,
+        init,
         payer = claimant,
         space = 8 + Claim::INIT_SPACE,
         seeds = [CLAIM_SEED, claimant.key().as_ref()],

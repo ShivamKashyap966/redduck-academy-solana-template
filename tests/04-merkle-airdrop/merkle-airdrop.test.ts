@@ -137,11 +137,32 @@ describe("04-merkle-airdrop", () => {
     // First claim succeeds
     await sendIxs(context, [claimant], ix);
 
-    // Second claim blocked by anti-double-claim guard (AlreadyClaimed)
+    // Verify claim marker exists and is marked claimed
+    const claimAccount = await program.account.claim.fetch(
+      claimPda(claimant.publicKey),
+    );
+    assert.isTrue(claimAccount.claimed);
+    assert.equal(
+      claimAccount.claimant.toBase58(),
+      claimant.publicKey.toBase58(),
+    );
+
+    const balanceBefore = await getTokenBalance(claimantAta);
+    assert.equal(balanceBefore.toString(), amount.toString());
+
+    // Second claim blocked by Anchor init constraint (SystemError::AccountAlreadyInUse: 0x0)
     await expectReverted(
-      { revertedWith: { message: "0x1771" } }, // AlreadyClaimed
+      { revertedWith: { message: "custom program error: 0x0" } },
       sendIxs(context, [claimant], ix),
     );
+
+    // Assert claimant balance did not increase and claim marker remains intact
+    const balanceAfter = await getTokenBalance(claimantAta);
+    assert.equal(balanceAfter.toString(), balanceBefore.toString());
+    const claimAfter = await program.account.claim.fetch(
+      claimPda(claimant.publicKey),
+    );
+    assert.isTrue(claimAfter.claimed);
   });
 
   it("claims an allocation with a valid signature", async () => {
@@ -228,6 +249,19 @@ describe("04-merkle-airdrop", () => {
       .instruction();
     await sendIxs(context, [claimant], merkleIx);
 
+    // Verify claim marker exists after Merkle claim
+    const claimAccount = await program.account.claim.fetch(
+      claimPda(claimant.publicKey),
+    );
+    assert.isTrue(claimAccount.claimed);
+    assert.equal(
+      claimAccount.claimant.toBase58(),
+      claimant.publicKey.toBase58(),
+    );
+
+    const balanceBefore = await getTokenBalance(claimantAta);
+    assert.equal(balanceBefore.toString(), amount.toString());
+
     // 2. Attempt to claim via signature (blocked by anti-double-claim guard)
     const sigIx = buildClaimSignatureIx(
       signer,
@@ -248,10 +282,19 @@ describe("04-merkle-airdrop", () => {
       })
       .instruction();
 
+    // Blocked by Anchor init constraint because shared claim-marker PDA already exists (0x0)
     await expectReverted(
-      { revertedWith: { message: "0x1771" } }, // AlreadyClaimed
+      { revertedWith: { message: "custom program error: 0x0" } },
       sendIxs(context, [claimant], sigIx, sigClaimIx),
     );
+
+    // Assert claimant balance did not increase and claim marker remains intact
+    const balanceAfter = await getTokenBalance(claimantAta);
+    assert.equal(balanceAfter.toString(), balanceBefore.toString());
+    const claimAfter = await program.account.claim.fetch(
+      claimPda(claimant.publicKey),
+    );
+    assert.isTrue(claimAfter.claimed);
   });
 
   it("refuses claiming via Merkle proof if already claimed via signature", async () => {
@@ -295,6 +338,19 @@ describe("04-merkle-airdrop", () => {
       .instruction();
     await sendIxs(context, [claimant], sigIx, sigClaimIx);
 
+    // Verify claim marker exists after signature claim
+    const claimAccount = await program.account.claim.fetch(
+      claimPda(claimant.publicKey),
+    );
+    assert.isTrue(claimAccount.claimed);
+    assert.equal(
+      claimAccount.claimant.toBase58(),
+      claimant.publicKey.toBase58(),
+    );
+
+    const balanceBefore = await getTokenBalance(claimantAta);
+    assert.equal(balanceBefore.toString(), amount.toString());
+
     // 2. Attempt to claim via Merkle proof (blocked by anti-double-claim guard)
     const merkleIx = await program.methods
       .claim(amount, proof)
@@ -308,10 +364,19 @@ describe("04-merkle-airdrop", () => {
       })
       .instruction();
 
+    // Blocked by Anchor init constraint because shared claim-marker PDA already exists (0x0)
     await expectReverted(
-      { revertedWith: { message: "0x1771" } }, // AlreadyClaimed
+      { revertedWith: { message: "custom program error: 0x0" } },
       sendIxs(context, [claimant], merkleIx),
     );
+
+    // Assert claimant balance did not increase and claim marker remains intact
+    const balanceAfter = await getTokenBalance(claimantAta);
+    assert.equal(balanceAfter.toString(), balanceBefore.toString());
+    const claimAfter = await program.account.claim.fetch(
+      claimPda(claimant.publicKey),
+    );
+    assert.isTrue(claimAfter.claimed);
   });
 
   it("refuses claiming twice via signature", async () => {
@@ -360,7 +425,20 @@ describe("04-merkle-airdrop", () => {
     // First signature claim succeeds
     await sendIxs(context, [claimant], sigIx, claimIx);
 
-    // Second signature claim fails (AlreadyClaimed)
+    // Verify claim marker exists
+    const claimAccount = await program.account.claim.fetch(
+      claimPda(claimant.publicKey),
+    );
+    assert.isTrue(claimAccount.claimed);
+    assert.equal(
+      claimAccount.claimant.toBase58(),
+      claimant.publicKey.toBase58(),
+    );
+
+    const balanceBefore = await getTokenBalance(claimantAta);
+    assert.equal(balanceBefore.toString(), amount.toString());
+
+    // Second signature claim fails because shared claim-marker PDA already exists (0x0)
     const sigIx2 = buildClaimSignatureIx(
       signer,
       claimant.publicKey,
@@ -368,9 +446,17 @@ describe("04-merkle-airdrop", () => {
       program.programId,
     );
     await expectReverted(
-      { revertedWith: { message: "0x1771" } }, // AlreadyClaimed
+      { revertedWith: { message: "custom program error: 0x0" } },
       sendIxs(context, [claimant], sigIx2, claimIx),
     );
+
+    // Assert claimant balance did not increase and claim marker remains intact
+    const balanceAfter = await getTokenBalance(claimantAta);
+    assert.equal(balanceAfter.toString(), balanceBefore.toString());
+    const claimAfter = await program.account.claim.fetch(
+      claimPda(claimant.publicKey),
+    );
+    assert.isTrue(claimAfter.claimed);
   });
 
   it("refuses claim with a signature signed by an unauthorized key", async () => {
@@ -474,7 +560,11 @@ describe("04-merkle-airdrop", () => {
       sendIxs(context, [bob], sigIx, claimIxBobPda),
     );
 
-    // Bob tries to claim passing Alice's claim PDA (Anchor seeds constraint fails)
+    // Confirm that Bob receives no tokens from the failed transaction
+    const bobBalance = await getTokenBalance(bobAta);
+    assert.equal(bobBalance.toString(), "0");
+
+    // Bob tries to claim passing Alice's claim PDA (Anchor seeds constraint fails: 2006 = 0x7d6)
     const claimIxAlicePda = await program.methods
       .claimWithSignature(amount)
       .accountsPartial({
@@ -489,9 +579,41 @@ describe("04-merkle-airdrop", () => {
       .instruction();
 
     await expectReverted(
-      { revertedWith: { message: "custom program error" } },
+      { revertedWith: { message: "0x7d6" } }, // ConstraintSeeds
       sendIxs(context, [bob], sigIx, claimIxAlicePda),
     );
+  });
+
+  it("enforces one-time initialization and rejects second initialize call", async () => {
+    const { context, program, mint, payer, config, signer, tree } = env;
+
+    // 1. Initial configuration was successfully initialized in setupAirdrop
+    const initialConfig = await program.account.config.fetch(config);
+    assert.deepEqual([...initialConfig.merkleRoot], [...tree.root]);
+    assert.equal(initialConfig.signer.toBase58(), signer.publicKey.toBase58());
+
+    // 2. Attempt to initialize the same configuration PDA a second time
+    const fakeSigner = Keypair.generate();
+    const fakeRoot = new Array(32).fill(0xee);
+    const reinitIx = await program.methods
+      .initialize(fakeRoot, fakeSigner.publicKey)
+      .accountsPartial({
+        mint,
+        payer: payer.publicKey,
+        tokenProgram: TOKEN_PROGRAM_ID,
+      })
+      .instruction();
+
+    // 3. Assert that the second initialization fails because config PDA already exists (SystemError::AccountAlreadyInUse: 0x0)
+    await expectReverted(
+      { revertedWith: { message: "custom program error: 0x0" } },
+      sendIxs(context, [payer], reinitIx),
+    );
+
+    // 4. Fetch the configuration afterward and confirm root and signer were not overwritten
+    const postConfig = await program.account.config.fetch(config);
+    assert.deepEqual([...postConfig.merkleRoot], [...tree.root]);
+    assert.equal(postConfig.signer.toBase58(), signer.publicKey.toBase58());
   });
 
   it("refuses claim with zero amount", async () => {
