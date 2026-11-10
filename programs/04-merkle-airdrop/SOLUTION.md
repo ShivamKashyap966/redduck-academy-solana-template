@@ -82,10 +82,10 @@ Because `CONFIG_SEED` is constant (`b"config"`), there is exactly one configurat
 
 ### Execution Details
 - **Repository:** [`ShivamKashyap966/redduck-academy-solana-template`](https://github.com/ShivamKashyap966/redduck-academy-solana-template)
-- **Submitted Documentation Commit:** [`1111aa732aa5d654e2b50ee227ccf172928164ab`](https://github.com/ShivamKashyap966/redduck-academy-solana-template/commit/1111aa732aa5d654e2b50ee227ccf172928164ab)
-- **Tested Code Commit:** [`e17db93797e754ef4af6ca19c24dcdf7bf191053`](https://github.com/ShivamKashyap966/redduck-academy-solana-template/commit/e17db93797e754ef4af6ca19c24dcdf7bf191053)
-- **GitHub Actions CI Run:** [#20 (ID 42810645795)](https://github.com/ShivamKashyap966/redduck-academy-solana-template/actions/runs/42810645795)
-- **Full Test Evidence Document:** See root-level [`TEST_OUTPUT.md`](../../TEST_OUTPUT.md)
+- **Tested code commit:** `e17db93797e754ef4af6ca19c24dcdf7bf191053`
+- **Documentation snapshot tested by CI:** `1111aa732aa5d654e2b50ee227ccf172928164ab`
+- **CI run:** https://github.com/ShivamKashyap966/redduck-academy-solana-template/actions/runs/42810645795
+- **Root-level evidence file:** [`../../TEST_OUTPUT.md`](../../TEST_OUTPUT.md)
 - **Task Test Command:**
 
 ```bash
