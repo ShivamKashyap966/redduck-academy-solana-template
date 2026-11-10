@@ -77,8 +77,10 @@ Because `CONFIG_SEED` is constant (`b"config"`), there is exactly one configurat
 
 ### Execution Details
 - **Repository:** https://github.com/ShivamKashyap966/redduck-academy-solana-template
-- **Tested Code Commit:** `e17db93797e754ef4af6ca19c24dcdf7bf191053`
-- **GitHub Actions CI Run:** https://github.com/ShivamKashyap966/redduck-academy-solana-template/actions/runs/42801107155
+- **Submitted Documentation Commit:** [`1111aa732aa5d654e2b50ee227ccf172928164ab`](https://github.com/ShivamKashyap966/redduck-academy-solana-template/commit/1111aa732aa5d654e2b50ee227ccf172928164ab)
+- **Tested Code Commit:** [`e17db93797e754ef4af6ca19c24dcdf7bf191053`](https://github.com/ShivamKashyap966/redduck-academy-solana-template/commit/e17db93797e754ef4af6ca19c24dcdf7bf191053)
+- **GitHub Actions CI Run:** [#20 (ID 42810645795)](https://github.com/ShivamKashyap966/redduck-academy-solana-template/actions/runs/42810645795)
+- **Full Test Evidence Document:** See root-level [`TEST_OUTPUT.md`](../../TEST_OUTPUT.md)
 - **Task Test Command:**
 ```bash
 npx ts-mocha -p ./tsconfig.json -t 1000000 tests/04-merkle-airdrop/*.test.ts
@@ -103,6 +105,32 @@ npx ts-mocha -p ./tsconfig.json -t 1000000 tests/04-merkle-airdrop/*.test.ts
   0 failing
 ```
 
+### Criterion 06 — Anti-Double-Claim Execution Evidence
+All four anti-double-claim pathways were verified against the System Program's atomic account creation guard:
+1. **Merkle Double Claim:** System Program rejects second claim with `AccountAlreadyInUse` (`0x0`).
+   ```text
+   2026-11-10T11:54:25.4049912Z DEBUG Program log: Allocate: account Address { address: FvwYMMnhoC8t6bb8zSVCmvn2mELeQDDcqtzfKqy1aRqu, base: None } already in use
+   2026-11-10T11:54:25.4050704Z DEBUG Program 11111111111111111111111111111111 failed: custom program error: 0x0
+   2026-11-10T11:54:25.4057642Z     ✔ refuses claiming twice via Merkle proof (anti-double-claim guard)
+   ```
+2. **Merkle then Signature Cross-Path Guard:** Initial claim via Merkle blocks subsequent claim via signature (`0x0`).
+   ```text
+   2026-11-10T11:54:25.6367475Z DEBUG Program log: Allocate: account Address { address: P2NnWtpCrUPdTNvScr3q5yLWPAPXGSvg7BjRqQpAYdD, base: None } already in use
+   2026-11-10T11:54:25.6368461Z DEBUG Program 11111111111111111111111111111111 failed: custom program error: 0x0
+   2026-11-10T11:54:25.6380286Z     ✔ refuses claiming via signature if already claimed via Merkle proof
+   ```
+3. **Signature then Merkle Cross-Path Guard:** Initial claim via signature blocks subsequent claim via Merkle proof (`0x0`).
+   ```text
+   2026-11-10T11:54:25.7622595Z DEBUG Program log: Allocate: account Address { address: 3AtmsyoEsVKCnEFiQteRRZhA4uHrywxBiji9tJj3iUaH, base: None } already in use
+   2026-11-10T11:54:25.7623573Z DEBUG Program 11111111111111111111111111111111 failed: custom program error: 0x0
+   2026-11-10T11:54:25.7629781Z     ✔ refuses claiming via Merkle proof if already claimed via signature
+   ```
+4. **Signature Double Claim:** Calling `claim_with_signature` twice fails with `0x0`.
+   ```text
+   2026-11-10T11:54:25.8913480Z DEBUG Program 11111111111111111111111111111111 failed: custom program error: 0x0
+   2026-11-10T11:54:25.8917915Z     ✔ refuses claiming twice via signature
+   ```
+
 ### Criterion 14 — Cross-User Replay Execution Evidence
 In the cross-user signature replay test:
 1. **Alice's Valid Signature:** A valid Ed25519 signature authorizing `[alice.publicKey || amount || programId]` was submitted by Bob with Bob's claimant account and Bob's claim PDA.
@@ -112,33 +140,37 @@ In the cross-user signature replay test:
 5. **Passed Test:** The test completed successfully and passed in the official CI runner:
    `✔ there is a test that signature for one user cannot be used by another (cross-user signature replay)`
 
-#### Verbatim CI Runtime Log Excerpt (Run #42801107155)
+#### Verbatim CI Runtime Log Excerpt (Run #20, ID 42810645795)
 ```text
-2026-11-10T10:45:27.143236806Z DEBUG Program 11111111111111111111111111111111 invoke [1]
-2026-11-10T10:45:27.143250400Z DEBUG Program 11111111111111111111111111111111 success
-2026-11-10T10:45:27.143253605Z DEBUG Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA invoke [1]
-2026-11-10T10:45:27.143290932Z DEBUG Program log: Instruction: InitializeMint2
-2026-11-10T10:45:27.143309755Z DEBUG Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA success
-2026-11-10T10:45:27.158050406Z DEBUG Program log: Create
-2026-11-10T10:45:27.158295152Z DEBUG Program log: Initialize the associated token account
-2026-11-10T10:45:27.158657978Z DEBUG Program ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL success
-2026-11-10T10:45:27.165450112Z DEBUG Program BbyrsYvVu6eTh7CGBaFfbJgS6Q7C8zQy1NfxA3Ne9xbt invoke [1]
-2026-11-10T10:45:27.165707731Z DEBUG Program log: Instruction: ClaimWithSignature
-2026-11-10T10:45:27.165813617Z DEBUG Program 11111111111111111111111111111111 invoke [2]
-2026-11-10T10:45:27.165824435Z DEBUG Program 11111111111111111111111111111111 success
-2026-11-10T10:45:27.165891591Z DEBUG Program log: AnchorError thrown in programs/04-merkle-airdrop/src/instructions/claim_with_signature.rs:110. Error Code: InvalidSignatureMessage. Error Number: 6004. Error Message: Invalid signature message.
-2026-11-10T10:45:27.165898175Z DEBUG Program BbyrsYvVu6eTh7CGBaFfbJgS6Q7C8zQy1NfxA3Ne9xbt consumed 24551 of 400000 compute units
-2026-11-10T10:45:27.165904384Z DEBUG Program BbyrsYvVu6eTh7CGBaFfbJgS6Q7C8zQy1NfxA3Ne9xbt failed: custom program error: 0x1774
-2026-11-10T10:45:27.170860593Z DEBUG Program BbyrsYvVu6eTh7CGBaFfbJgS6Q7C8zQy1NfxA3Ne9xbt invoke [1]
-2026-11-10T10:45:27.170942373Z DEBUG Program log: Instruction: ClaimWithSignature
-2026-11-10T10:45:27.171065311Z DEBUG Program log: AnchorError caused by account: claim. Error Code: ConstraintSeeds. Error Number: 2006. Error Message: A seeds constraint was violated.
-2026-11-10T10:45:27.171069578Z DEBUG Program log: Left:
-2026-11-10T10:45:27.171074853Z DEBUG Program log: 8KXtrsJhn2yAyvXiKWCexacr2YLHhF1C6ME3DgkBQTKs
-2026-11-10T10:45:27.171077465Z DEBUG Program log: Right:
-2026-11-10T10:45:27.171080116Z DEBUG Program log: 4j5x8B1SXkN5SgChEwUXqCwDAx1Y65UzfS5qFMFWAtSC
-2026-11-10T10:45:27.171086429Z DEBUG Program BbyrsYvVu6eTh7CGBaFfbJgS6Q7C8zQy1NfxA3Ne9xbt consumed 16183 of 400000 compute units
-2026-11-10T10:45:27.171097914Z DEBUG Program BbyrsYvVu6eTh7CGBaFfbJgS6Q7C8zQy1NfxA3Ne9xbt failed: custom program error: 0x7d6
-2026-11-10T10:45:27.1723821Z     ✔ there is a test that signature for one user cannot be used by another (cross-user signature replay)
+2026-11-10T11:54:26.1051968Z DEBUG Program 11111111111111111111111111111111 invoke [1]
+2026-11-10T11:54:26.1053093Z DEBUG Program 11111111111111111111111111111111 success
+2026-11-10T11:54:26.1054514Z DEBUG Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA invoke [1]
+2026-11-10T11:54:26.1055530Z DEBUG Program log: Instruction: InitializeMint2
+2026-11-10T11:54:26.1057482Z DEBUG Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA success
+2026-11-10T11:54:26.1058907Z DEBUG Program log: Create
+2026-11-10T11:54:26.1064979Z DEBUG Program log: Initialize the associated token account
+2026-11-10T11:54:26.1204868Z DEBUG Program ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL success
+2026-11-10T11:54:26.1236018Z DEBUG Program BbyrsYvVu6eTh7CGBaFfbJgS6Q7C8zQy1NfxA3Ne9xbt invoke [1]
+2026-11-10T11:54:26.1236747Z DEBUG Program log: Instruction: ClaimWithSignature
+2026-11-10T11:54:26.1237772Z DEBUG Program 11111111111111111111111111111111 invoke [2]
+2026-11-10T11:54:26.1238859Z DEBUG Program 11111111111111111111111111111111 success
+2026-11-10T11:54:26.1239908Z DEBUG Program log: AnchorError thrown in programs/04-merkle-airdrop/src/instructions/claim_with_signature.rs:110. Error Code: InvalidSignatureMessage. Error Number: 6004. Error Message: Invalid signature message.
+2026-11-10T11:54:26.1240991Z DEBUG Program BbyrsYvVu6eTh7CGBaFfbJgS6Q7C8zQy1NfxA3Ne9xbt consumed 18551 of 400000 compute units
+2026-11-10T11:54:26.1241800Z DEBUG Program BbyrsYvVu6eTh7CGBaFfbJgS6Q7C8zQy1NfxA3Ne9xbt failed: custom program error: 0x1774
+2026-11-10T11:54:26.1281386Z DEBUG Program BbyrsYvVu6eTh7CGBaFfbJgS6Q7C8zQy1NfxA3Ne9xbt invoke [1]
+2026-11-10T11:54:26.1282299Z DEBUG Program log: Instruction: ClaimWithSignature
+2026-11-10T11:54:26.1283430Z DEBUG Program log: AnchorError caused by account: claim. Error Code: ConstraintSeeds. Error Number: 2006. Error Message: A seeds constraint was violated.
+2026-11-10T11:54:26.1284154Z DEBUG Program log: Left:
+2026-11-10T11:54:26.1284721Z DEBUG Program log: 4f4Qup7VRdmwdZLnmU9GEbjL56WV8F7xJHnqAjJ1UpjE
+2026-11-10T11:54:26.1285421Z DEBUG Program log: Right:
+2026-11-10T11:54:26.1286098Z DEBUG Program log: EMsawt2mxnL9L578oJGo6Z7yGkZvGDkyxLggunerc1bf
+2026-11-10T11:54:26.1286828Z DEBUG Program BbyrsYvVu6eTh7CGBaFfbJgS6Q7C8zQy1NfxA3Ne9xbt consumed 10183 of 400000 compute units
+2026-11-10T11:54:26.1287623Z DEBUG Program BbyrsYvVu6eTh7CGBaFfbJgS6Q7C8zQy1NfxA3Ne9xbt failed: custom program error: 0x7d6
+2026-11-10T11:54:26.1288714Z     ✔ there is a test that signature for one user cannot be used by another (cross-user signature replay)
 ```
 
-Link to verified GitHub Actions run: [GitHub Actions Run #42801107155](https://github.com/ShivamKashyap966/redduck-academy-solana-template/actions/runs/42801107155)
+### Criteria 16 & 17 — Summary of Test Suite Execution
+- **Criteria 16 (Comprehensive Coverage):** Covers all rubric requirements including positive claims, negative proof checks, unauthorized signers, cross-user replay, configuration immutability, zero amount rejections, and all four double-claim permutations.
+- **Criteria 17 (Verified Passing Execution):** All 11 tests passed in GitHub Actions CI run `#20` (`42810645795`).
+
+Link to verified GitHub Actions run: [GitHub Actions Run #20](https://github.com/ShivamKashyap966/redduck-academy-solana-template/actions/runs/42810645795)
