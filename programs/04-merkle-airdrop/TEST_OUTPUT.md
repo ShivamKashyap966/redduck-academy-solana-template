@@ -62,6 +62,7 @@ npx ts-mocha -p ./tsconfig.json -t 1000000 tests/04-merkle-airdrop/*.test.ts
 
 ### Technical Mechanism
 Both `claim` and `claim_with_signature` instructions derive the exact same claim-marker PDA:
+
 ```rust
 #[account(
     init,
@@ -72,51 +73,60 @@ Both `claim` and `claim_with_signature` instructions derive the exact same claim
 )]
 pub claim: Account<'info, Claim>,
 ```
+
 By utilizing Anchor's `init` constraint, account creation is delegated to the Solana System Program's `create_account`. Once an account is initialized for a claimant, any subsequent attempt to re-initialize the account fails with `SystemError::AccountAlreadyInUse` (`0x0`).
 
 ### Scenarios Tested and Verified
 
-1. **Merkle Double-Claim:** Calling `claim` twice for the same claimant.
-   ```text
-   2026-11-10T11:54:25.4046836Z DEBUG Program BbyrsYvVu6eTh7CGBaFfbJgS6Q7C8zQy1NfxA3Ne9xbt invoke [1]
-   2026-11-10T11:54:25.4047931Z DEBUG Program log: Instruction: Claim
-   2026-11-10T11:54:25.4048948Z DEBUG Program 11111111111111111111111111111111 invoke [2]
-   2026-11-10T11:54:25.4049912Z DEBUG Program log: Allocate: account Address { address: FvwYMMnhoC8t6bb8zSVCmvn2mELeQDDcqtzfKqy1aRqu, base: None } already in use
-   2026-11-10T11:54:25.4050704Z DEBUG Program 11111111111111111111111111111111 failed: custom program error: 0x0
-   2026-11-10T11:54:25.4052483Z DEBUG Program BbyrsYvVu6eTh7CGBaFfbJgS6Q7C8zQy1NfxA3Ne9xbt failed: custom program error: 0x0
-   2026-11-10T11:54:25.4057642Z     ✔ refuses claiming twice via Merkle proof (anti-double-claim guard)
-   ```
+#### Scenario 1: Merkle Double-Claim
+Calling `claim` twice for the same claimant:
 
-2. **Merkle $\rightarrow$ Signature Cross-Path Guard:** Claiming via Merkle proof first, then attempting to claim via signature.
-   ```text
-   2026-11-10T11:54:25.6364815Z DEBUG Program BbyrsYvVu6eTh7CGBaFfbJgS6Q7C8zQy1NfxA3Ne9xbt invoke [1]
-   2026-11-10T11:54:25.6365912Z DEBUG Program log: Instruction: ClaimWithSignature
-   2026-11-10T11:54:25.6366662Z DEBUG Program 11111111111111111111111111111111 invoke [2]
-   2026-11-10T11:54:25.6367475Z DEBUG Program log: Allocate: account Address { address: P2NnWtpCrUPdTNvScr3q5yLWPAPXGSvg7BjRqQpAYdD, base: None } already in use
-   2026-11-10T11:54:25.6368461Z DEBUG Program 11111111111111111111111111111111 failed: custom program error: 0x0
-   2026-11-10T11:54:25.6370268Z DEBUG Program BbyrsYvVu6eTh7CGBaFfbJgS6Q7C8zQy1NfxA3Ne9xbt failed: custom program error: 0x0
-   2026-11-10T11:54:25.6380286Z     ✔ refuses claiming via signature if already claimed via Merkle proof
-   ```
+```text
+2026-11-10T11:54:25.4046836Z DEBUG Program BbyrsYvVu6eTh7CGBaFfbJgS6Q7C8zQy1NfxA3Ne9xbt invoke [1]
+2026-11-10T11:54:25.4047931Z DEBUG Program log: Instruction: Claim
+2026-11-10T11:54:25.4048948Z DEBUG Program 11111111111111111111111111111111 invoke [2]
+2026-11-10T11:54:25.4049912Z DEBUG Program log: Allocate: account Address { address: FvwYMMnhoC8t6bb8zSVCmvn2mELeQDDcqtzfKqy1aRqu, base: None } already in use
+2026-11-10T11:54:25.4050704Z DEBUG Program 11111111111111111111111111111111 failed: custom program error: 0x0
+2026-11-10T11:54:25.4052483Z DEBUG Program BbyrsYvVu6eTh7CGBaFfbJgS6Q7C8zQy1NfxA3Ne9xbt failed: custom program error: 0x0
+2026-11-10T11:54:25.4057642Z     ✔ refuses claiming twice via Merkle proof (anti-double-claim guard)
+```
 
-3. **Signature $\rightarrow$ Merkle Cross-Path Guard:** Claiming via signature first, then attempting to claim via Merkle proof.
-   ```text
-   2026-11-10T11:54:25.7619349Z DEBUG Program BbyrsYvVu6eTh7CGBaFfbJgS6Q7C8zQy1NfxA3Ne9xbt invoke [1]
-   2026-11-10T11:54:25.7620402Z DEBUG Program log: Instruction: Claim
-   2026-11-10T11:54:25.7621335Z DEBUG Program 11111111111111111111111111111111 invoke [2]
-   2026-11-10T11:54:25.7622595Z DEBUG Program log: Allocate: account Address { address: 3AtmsyoEsVKCnEFiQteRRZhA4uHrywxBiji9tJj3iUaH, base: None } already in use
-   2026-11-10T11:54:25.7623573Z DEBUG Program 11111111111111111111111111111111 failed: custom program error: 0x0
-   2026-11-10T11:54:25.7625679Z DEBUG Program BbyrsYvVu6eTh7CGBaFfbJgS6Q7C8zQy1NfxA3Ne9xbt failed: custom program error: 0x0
-   2026-11-10T11:54:25.7629781Z     ✔ refuses claiming via Merkle proof if already claimed via signature
-   ```
+#### Scenario 2: Merkle then Signature Cross-Path Guard
+Claiming via Merkle proof first, then attempting to claim via signature:
 
-4. **Signature Double-Claim:** Calling `claim_with_signature` twice for the same claimant.
-   ```text
-   2026-11-10T11:54:25.8908305Z DEBUG Program BbyrsYvVu6eTh7CGBaFfbJgS6Q7C8zQy1NfxA3Ne9xbt invoke [1]
-   2026-11-10T11:54:25.8909543Z DEBUG Program log: Instruction: ClaimWithSignature
-   2026-11-10T11:54:25.8913480Z DEBUG Program 11111111111111111111111111111111 failed: custom program error: 0x0
-   2026-11-10T11:54:25.8916157Z DEBUG Program BbyrsYvVu6eTh7CGBaFfbJgS6Q7C8zQy1NfxA3Ne9xbt failed: custom program error: 0x0
-   2026-11-10T11:54:25.8917915Z     ✔ refuses claiming twice via signature
-   ```
+```text
+2026-11-10T11:54:25.6364815Z DEBUG Program BbyrsYvVu6eTh7CGBaFfbJgS6Q7C8zQy1NfxA3Ne9xbt invoke [1]
+2026-11-10T11:54:25.6365912Z DEBUG Program log: Instruction: ClaimWithSignature
+2026-11-10T11:54:25.6366662Z DEBUG Program 11111111111111111111111111111111 invoke [2]
+2026-11-10T11:54:25.6367475Z DEBUG Program log: Allocate: account Address { address: P2NnWtpCrUPdTNvScr3q5yLWPAPXGSvg7BjRqQpAYdD, base: None } already in use
+2026-11-10T11:54:25.6368461Z DEBUG Program 11111111111111111111111111111111 failed: custom program error: 0x0
+2026-11-10T11:54:25.6370268Z DEBUG Program BbyrsYvVu6eTh7CGBaFfbJgS6Q7C8zQy1NfxA3Ne9xbt failed: custom program error: 0x0
+2026-11-10T11:54:25.6380286Z     ✔ refuses claiming via signature if already claimed via Merkle proof
+```
+
+#### Scenario 3: Signature then Merkle Cross-Path Guard
+Claiming via signature first, then attempting to claim via Merkle proof:
+
+```text
+2026-11-10T11:54:25.7619349Z DEBUG Program BbyrsYvVu6eTh7CGBaFfbJgS6Q7C8zQy1NfxA3Ne9xbt invoke [1]
+2026-11-10T11:54:25.7620402Z DEBUG Program log: Instruction: Claim
+2026-11-10T11:54:25.7621335Z DEBUG Program 11111111111111111111111111111111 invoke [2]
+2026-11-10T11:54:25.7622595Z DEBUG Program log: Allocate: account Address { address: 3AtmsyoEsVKCnEFiQteRRZhA4uHrywxBiji9tJj3iUaH, base: None } already in use
+2026-11-10T11:54:25.7623573Z DEBUG Program 11111111111111111111111111111111 failed: custom program error: 0x0
+2026-11-10T11:54:25.7625679Z DEBUG Program BbyrsYvVu6eTh7CGBaFfbJgS6Q7C8zQy1NfxA3Ne9xbt failed: custom program error: 0x0
+2026-11-10T11:54:25.7629781Z     ✔ refuses claiming via Merkle proof if already claimed via signature
+```
+
+#### Scenario 4: Signature Double-Claim
+Calling `claim_with_signature` twice for the same claimant:
+
+```text
+2026-11-10T11:54:25.8908305Z DEBUG Program BbyrsYvVu6eTh7CGBaFfbJgS6Q7C8zQy1NfxA3Ne9xbt invoke [1]
+2026-11-10T11:54:25.8909543Z DEBUG Program log: Instruction: ClaimWithSignature
+2026-11-10T11:54:25.8913480Z DEBUG Program 11111111111111111111111111111111 failed: custom program error: 0x0
+2026-11-10T11:54:25.8916157Z DEBUG Program BbyrsYvVu6eTh7CGBaFfbJgS6Q7C8zQy1NfxA3Ne9xbt failed: custom program error: 0x0
+2026-11-10T11:54:25.8917915Z     ✔ refuses claiming twice via signature
+```
 
 ---
 
@@ -132,6 +142,7 @@ Verify that an Ed25519 signature generated for Alice cannot be reused or replaye
 6. The test passes cleanly in CI.
 
 ### Actual CI Log for Criterion 14 (Verbatim from Run #20)
+
 ```text
 2026-11-10T11:54:26.1051968Z DEBUG Program 11111111111111111111111111111111 invoke [1]
 2026-11-10T11:54:26.1053093Z DEBUG Program 11111111111111111111111111111111 success

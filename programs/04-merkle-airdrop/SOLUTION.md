@@ -11,6 +11,7 @@ The program exposes two independent claim mechanisms:
 2. Ed25519 signature verification (`claim_with_signature`)
 
 To ensure that each recipient can claim at most once across the entire protocol, both instructions specify the exact same claim-marker PDA with identical seeds:
+
 ```rust
 #[account(
     init,
@@ -21,6 +22,7 @@ To ensure that each recipient can claim at most once across the entire protocol,
 )]
 pub claim: Account<'info, Claim>,
 ```
+
 where `CLAIM_SEED = b"claim"`.
 
 Neither path incorporates caller-controlled values—such as claim method type, Merkle proof hashes, Ed25519 signature bytes, or claim amounts—into the PDA seeds. As a result, the PDA address is deterministically and uniquely bound to the recipient's public key (`claimant.key()`).
@@ -33,11 +35,13 @@ Because account creation failure occurs during account validation, neither the a
 
 ## 3. Why Alice's signature cannot authorize Bob
 The trusted signer creates an Ed25519 signature over a strictly formatted 72-byte message binding three components:
+
 ```text
 [claimant_pubkey (32 bytes) || amount (8 bytes LE) || program_id (32 bytes)]
 ```
 
 On-chain, `claim_with_signature` inspects the preceding Ed25519 verification instruction from the `instructions` sysvar (`SYSVAR_INSTRUCTIONS_PUBKEY`). It independently reconstructs the expected message using `ctx.accounts.claimant.key()`, the instruction `amount`, and `crate::ID`. It then verifies byte-for-byte that the message verified by the Ed25519 instruction matches this expected message:
+
 ```rust
 let expected_message = [
     ctx.accounts.claimant.key().as_ref(),
@@ -60,6 +64,7 @@ Consequently, an Ed25519 signature is strictly bound to its intended recipient a
 
 ## 4. How the fixed-seed configuration PDA enforces one-time initialization
 The `Config` PDA is derived using the fixed seed `[b"config"]` and initialized with Anchor's `init` constraint:
+
 ```rust
 #[account(
     init,
@@ -76,17 +81,19 @@ Because `CONFIG_SEED` is constant (`b"config"`), there is exactly one configurat
 ## 5. Test Execution Evidence
 
 ### Execution Details
-- **Repository:** https://github.com/ShivamKashyap966/redduck-academy-solana-template
+- **Repository:** [`ShivamKashyap966/redduck-academy-solana-template`](https://github.com/ShivamKashyap966/redduck-academy-solana-template)
 - **Submitted Documentation Commit:** [`1111aa732aa5d654e2b50ee227ccf172928164ab`](https://github.com/ShivamKashyap966/redduck-academy-solana-template/commit/1111aa732aa5d654e2b50ee227ccf172928164ab)
 - **Tested Code Commit:** [`e17db93797e754ef4af6ca19c24dcdf7bf191053`](https://github.com/ShivamKashyap966/redduck-academy-solana-template/commit/e17db93797e754ef4af6ca19c24dcdf7bf191053)
 - **GitHub Actions CI Run:** [#20 (ID 42810645795)](https://github.com/ShivamKashyap966/redduck-academy-solana-template/actions/runs/42810645795)
 - **Full Test Evidence Document:** See root-level [`TEST_OUTPUT.md`](../../TEST_OUTPUT.md)
 - **Task Test Command:**
+
 ```bash
 npx ts-mocha -p ./tsconfig.json -t 1000000 tests/04-merkle-airdrop/*.test.ts
 ```
 
 ### Actual Full Test-Suite Output (11 Passing, 0 Failing)
+
 ```text
   04-merkle-airdrop
     ✔ claims an allocation with a valid Merkle proof
@@ -107,29 +114,41 @@ npx ts-mocha -p ./tsconfig.json -t 1000000 tests/04-merkle-airdrop/*.test.ts
 
 ### Criterion 06 — Anti-Double-Claim Execution Evidence
 All four anti-double-claim pathways were verified against the System Program's atomic account creation guard:
-1. **Merkle Double Claim:** System Program rejects second claim with `AccountAlreadyInUse` (`0x0`).
-   ```text
-   2026-11-10T11:54:25.4049912Z DEBUG Program log: Allocate: account Address { address: FvwYMMnhoC8t6bb8zSVCmvn2mELeQDDcqtzfKqy1aRqu, base: None } already in use
-   2026-11-10T11:54:25.4050704Z DEBUG Program 11111111111111111111111111111111 failed: custom program error: 0x0
-   2026-11-10T11:54:25.4057642Z     ✔ refuses claiming twice via Merkle proof (anti-double-claim guard)
-   ```
-2. **Merkle then Signature Cross-Path Guard:** Initial claim via Merkle blocks subsequent claim via signature (`0x0`).
-   ```text
-   2026-11-10T11:54:25.6367475Z DEBUG Program log: Allocate: account Address { address: P2NnWtpCrUPdTNvScr3q5yLWPAPXGSvg7BjRqQpAYdD, base: None } already in use
-   2026-11-10T11:54:25.6368461Z DEBUG Program 11111111111111111111111111111111 failed: custom program error: 0x0
-   2026-11-10T11:54:25.6380286Z     ✔ refuses claiming via signature if already claimed via Merkle proof
-   ```
-3. **Signature then Merkle Cross-Path Guard:** Initial claim via signature blocks subsequent claim via Merkle proof (`0x0`).
-   ```text
-   2026-11-10T11:54:25.7622595Z DEBUG Program log: Allocate: account Address { address: 3AtmsyoEsVKCnEFiQteRRZhA4uHrywxBiji9tJj3iUaH, base: None } already in use
-   2026-11-10T11:54:25.7623573Z DEBUG Program 11111111111111111111111111111111 failed: custom program error: 0x0
-   2026-11-10T11:54:25.7629781Z     ✔ refuses claiming via Merkle proof if already claimed via signature
-   ```
-4. **Signature Double Claim:** Calling `claim_with_signature` twice fails with `0x0`.
-   ```text
-   2026-11-10T11:54:25.8913480Z DEBUG Program 11111111111111111111111111111111 failed: custom program error: 0x0
-   2026-11-10T11:54:25.8917915Z     ✔ refuses claiming twice via signature
-   ```
+
+#### Merkle Double Claim
+System Program rejects second claim with `AccountAlreadyInUse` (`0x0`):
+
+```text
+2026-11-10T11:54:25.4049912Z DEBUG Program log: Allocate: account Address { address: FvwYMMnhoC8t6bb8zSVCmvn2mELeQDDcqtzfKqy1aRqu, base: None } already in use
+2026-11-10T11:54:25.4050704Z DEBUG Program 11111111111111111111111111111111 failed: custom program error: 0x0
+2026-11-10T11:54:25.4057642Z     ✔ refuses claiming twice via Merkle proof (anti-double-claim guard)
+```
+
+#### Merkle then Signature Cross-Path Guard
+Initial claim via Merkle blocks subsequent claim via signature (`0x0`):
+
+```text
+2026-11-10T11:54:25.6367475Z DEBUG Program log: Allocate: account Address { address: P2NnWtpCrUPdTNvScr3q5yLWPAPXGSvg7BjRqQpAYdD, base: None } already in use
+2026-11-10T11:54:25.6368461Z DEBUG Program 11111111111111111111111111111111 failed: custom program error: 0x0
+2026-11-10T11:54:25.6380286Z     ✔ refuses claiming via signature if already claimed via Merkle proof
+```
+
+#### Signature then Merkle Cross-Path Guard
+Initial claim via signature blocks subsequent claim via Merkle proof (`0x0`):
+
+```text
+2026-11-10T11:54:25.7622595Z DEBUG Program log: Allocate: account Address { address: 3AtmsyoEsVKCnEFiQteRRZhA4uHrywxBiji9tJj3iUaH, base: None } already in use
+2026-11-10T11:54:25.7623573Z DEBUG Program 11111111111111111111111111111111 failed: custom program error: 0x0
+2026-11-10T11:54:25.7629781Z     ✔ refuses claiming via Merkle proof if already claimed via signature
+```
+
+#### Signature Double Claim
+Calling `claim_with_signature` twice fails with `0x0`:
+
+```text
+2026-11-10T11:54:25.8913480Z DEBUG Program 11111111111111111111111111111111 failed: custom program error: 0x0
+2026-11-10T11:54:25.8917915Z     ✔ refuses claiming twice via signature
+```
 
 ### Criterion 14 — Cross-User Replay Execution Evidence
 In the cross-user signature replay test:
@@ -141,6 +160,7 @@ In the cross-user signature replay test:
    `✔ there is a test that signature for one user cannot be used by another (cross-user signature replay)`
 
 #### Verbatim CI Runtime Log Excerpt (Run #20, ID 42810645795)
+
 ```text
 2026-11-10T11:54:26.1051968Z DEBUG Program 11111111111111111111111111111111 invoke [1]
 2026-11-10T11:54:26.1053093Z DEBUG Program 11111111111111111111111111111111 success
