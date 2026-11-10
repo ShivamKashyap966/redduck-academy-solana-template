@@ -77,9 +77,9 @@ Because `CONFIG_SEED` is constant (`b"config"`), there is exactly one configurat
 
 ### Execution Details
 - **Repository:** https://github.com/ShivamKashyap966/redduck-academy-solana-template
-- **Tested Commit:** `e17db93797e754ef4af6ca19c24dcdf7bf191053`
-- **GitHub Actions Run:** https://github.com/ShivamKashyap966/redduck-academy-solana-template/actions/runs/42801107155
-- **Test Command:**
+- **Tested Code Commit:** `e17db93797e754ef4af6ca19c24dcdf7bf191053`
+- **GitHub Actions CI Run:** https://github.com/ShivamKashyap966/redduck-academy-solana-template/actions/runs/42801107155
+- **Task Test Command:**
 ```bash
 npx ts-mocha -p ./tsconfig.json -t 1000000 tests/04-merkle-airdrop/*.test.ts
 ```
@@ -105,14 +105,11 @@ npx ts-mocha -p ./tsconfig.json -t 1000000 tests/04-merkle-airdrop/*.test.ts
 
 ### Criterion 14 — Cross-User Replay Execution Evidence
 In the cross-user signature replay test:
-1. Alice's valid signature authorizing `[alice.publicKey || amount || programId]` was submitted by Bob in Bob's claimant context.
-2. The on-chain program reconstructed the expected message using `bob.publicKey`, detected the mismatch with the message verified by the Ed25519 instruction, and rejected the transaction:
-   - **Error Name:** `InvalidSignatureMessage`
-   - **Error Number:** `6004`
-   - **Program Error:** `0x1774`
-3. Bob's associated token account balance was checked immediately following the revert, confirming Bob received zero tokens (`bobBalance == 0`).
-4. An attempt by Bob to pass Alice's claim PDA was also blocked by Anchor's `ConstraintSeeds` check (`0x7d6`).
-5. The test passed completely:
+1. **Alice's Valid Signature:** A valid Ed25519 signature authorizing `[alice.publicKey || amount || programId]` was submitted by Bob with Bob's claimant account and Bob's claim PDA.
+2. **Rejection via `InvalidSignatureMessage` (`0x1774` / error `6004`):** The program reconstructed the expected message with `bob.publicKey`, detected the mismatch with Alice's signed message, and aborted execution before transferring tokens.
+3. **Bob Balance Zero:** Bob's associated token account was inspected immediately after the revert, confirming Bob received zero tokens (`bobBalance == 0`).
+4. **Anchor Seeds Guard (`0x7d6` / error `2006`):** Bob's attempt to masquerade as Alice by passing Alice's claim PDA failed Anchor's seeds constraint (`ConstraintSeeds`).
+5. **Passed Test:** The test completed successfully and passed in the official CI runner:
    `✔ there is a test that signature for one user cannot be used by another (cross-user signature replay)`
 
 #### Verbatim CI Runtime Log Excerpt (Run #42801107155)
@@ -144,4 +141,4 @@ In the cross-user signature replay test:
 2026-11-10T10:45:27.1723821Z     ✔ there is a test that signature for one user cannot be used by another (cross-user signature replay)
 ```
 
-Link to the full verified run: [GitHub Actions Run #42801107155](https://github.com/ShivamKashyap966/redduck-academy-solana-template/actions/runs/42801107155)
+Link to verified GitHub Actions run: [GitHub Actions Run #42801107155](https://github.com/ShivamKashyap966/redduck-academy-solana-template/actions/runs/42801107155)
