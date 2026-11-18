@@ -20,6 +20,7 @@ All 11 tests pass, comprehensively verifying Merkle proof and Ed25519 signature 
     ✔ refuses claim with zero amount
 
   11 passing (2s)
+  0 failing
 ```
 
 ## Rubric Verification
@@ -55,26 +56,26 @@ All 11 tests pass, comprehensively verifying Merkle proof and Ed25519 signature 
 - **13. there is a test for a successful signature claim**:
   Verified by `claims an allocation with a valid signature`.
 - **14. there is a test that signature for one user cannot be used by another**:
-  Verified by `there is a test that signature for one user cannot be used by another (cross-user signature replay)`:
-  - Alice's valid signature attempted by Bob with Bob's claim PDA fails message verification with `InvalidSignatureMessage` (`0x1774` / error `6004`). Bob's token balance remains zero (`bobBalance == 0`).
-  - Attempting to pass Alice's claim PDA fails Anchor's seeds constraint (`ConstraintSeeds` / `0x7d6` / error `2006`).
+  Verified by `there is a test that signature for one user cannot be used by another (cross-user signature replay)`.
+  When Bob attempts to claim using Alice's valid signature:
+  - If using Bob's claim PDA $\rightarrow$ expected message `[bob || amount || program_id]` does not match signed message `[alice || amount || program_id]`; program rejects with `InvalidSignatureMessage` (`0x1774` / error `6004`). Bob's token balance is asserted to remain zero (`bobBalance == 0`).
+  - If Bob attempts to pass Alice's claim PDA $\rightarrow$ Anchor rejects with `ConstraintSeeds` (`0x7d6` / error `2006`).
 - **15. initialize is one-time and cannot be re-run on the same config**:
   Enforced by Anchor `init` constraint on fixed PDA seeds `[b"config"]`. Second initialization is rejected by System Program with `AccountAlreadyInUse` (`0x0`), leaving root and signer intact. Verified by `enforces one-time initialization and rejects second initialize call`.
 - **16. claimed test coverage matches actual test behavior**:
-  All 11 tests directly match the requirements, covering legitimate claims, invalid proofs, replay attempts, double claims, unauthorized signers, zero amount, and double initialization.
+  All 11 tests execute and directly match the required specifications, comprehensively covering valid Merkle claims, invalid proof rejection, 4-way anti-double-claim protection across Merkle and signature paths, valid signature claims, unauthorized signers, cross-user signature replay prevention, zero-amount rejection, and configuration immutability.
 - **17. test execution evidence confirms all tests pass**:
-  All 11 tests execute and pass cleanly on-chain in Bankrun (`11 passing (2s)`, `0 failing`).
+  All 11 tests execute and pass cleanly on-chain in Bankrun (`11 passing (2s)`, `0 failing`) in GitHub Actions CI run [#24 (ID 42827107641)](https://github.com/ShivamKashyap966/redduck-academy-solana-template/actions/runs/42827107641).
 
 ---
 
 ## CI Execution Details
 
-- **Date:** 2026-11-10T13:01:44Z
+- **Date:** 2026-11-10T13:48:23Z
 - **Repository:** [`ShivamKashyap966/redduck-academy-solana-template`](https://github.com/ShivamKashyap966/redduck-academy-solana-template)
 - **Branch:** `main`
 - **Tested Code Commit:** [`e17db93797e754ef4af6ca19c24dcdf7bf191053`](https://github.com/ShivamKashyap966/redduck-academy-solana-template/commit/e17db93797e754ef4af6ca19c24dcdf7bf191053)
-- **CI Documentation Snapshot:** [`14cbbf123b3641b71dcf87869385bf5640fe6bf9`](https://github.com/ShivamKashyap966/redduck-academy-solana-template/commit/14cbbf123b3641b71dcf87869385bf5640fe6bf9)
-- **GitHub Actions Run:** [#23 (ID 42819872329)](https://github.com/ShivamKashyap966/redduck-academy-solana-template/actions/runs/42819872329)
+- **GitHub Actions Run:** [#24 (ID 42827107641)](https://github.com/ShivamKashyap966/redduck-academy-solana-template/actions/runs/42827107641)
 - **Workflow / Job:** `Test` / `test`
 
 ---
@@ -84,55 +85,55 @@ All 11 tests pass, comprehensively verifying Merkle proof and Ed25519 signature 
 ### Criterion 06 — Anti-Double-Claim Protection Evidence
 
 #### Scenario 1: Merkle Double-Claim
-Calling `claim` twice for the same claimant:
+Calling `claim` twice for the same claimant fails atomic account creation:
 
 ```text
-2026-11-10T13:01:44.8174159Z DEBUG Program BbyrsYvVu6eTh7CGBaFfbJgS6Q7C8zQy1NfxA3Ne9xbt invoke [1]
-2026-11-10T13:01:44.8176155Z DEBUG Program log: Instruction: Claim
-2026-11-10T13:01:44.8178016Z DEBUG Program 11111111111111111111111111111111 invoke [2]
-2026-11-10T13:01:44.8180800Z DEBUG Program log: Allocate: account Address { address: CDHcYd14ehvUFztF5wHP1jg1NrBicskwHfpXMU69obGZ, base: None } already in use
-2026-11-10T13:01:44.8182462Z DEBUG Program 11111111111111111111111111111111 failed: custom program error: 0x0
-2026-11-10T13:01:44.8185822Z DEBUG Program BbyrsYvVu6eTh7CGBaFfbJgS6Q7C8zQy1NfxA3Ne9xbt failed: custom program error: 0x0
-2026-11-10T13:01:44.8186968Z     ✔ refuses claiming twice via Merkle proof (anti-double-claim guard)
+2026-11-10T13:48:22.7169438Z DEBUG Program BbyrsYvVu6eTh7CGBaFfbJgS6Q7C8zQy1NfxA3Ne9xbt invoke [1]
+2026-11-10T13:48:22.7170554Z DEBUG Program log: Instruction: Claim
+2026-11-10T13:48:22.7171452Z DEBUG Program 11111111111111111111111111111111 invoke [2]
+2026-11-10T13:48:22.7172451Z DEBUG Allocate: account Address { address: HEnFDHhsbXsUk5MyfevQPYPTonnpXsF7YppMKPkrGaFo, base: None } already in use
+2026-11-10T13:48:22.7173460Z DEBUG Program 11111111111111111111111111111111 failed: custom program error: 0x0
+2026-11-10T13:48:22.7176135Z DEBUG Program BbyrsYvVu6eTh7CGBaFfbJgS6Q7C8zQy1NfxA3Ne9xbt failed: custom program error: 0x0
+2026-11-10T13:48:22.7178212Z     ✔ refuses claiming twice via Merkle proof (anti-double-claim guard)
 ```
 
 #### Scenario 2: Merkle then Signature Cross-Path Guard
-Claiming via Merkle proof first, then attempting to claim via signature:
+Claiming via Merkle proof first, then attempting to claim via signature fails:
 
 ```text
-2026-11-10T13:01:45.1501806Z DEBUG Program BbyrsYvVu6eTh7CGBaFfbJgS6Q7C8zQy1NfxA3Ne9xbt invoke [1]
-2026-11-10T13:01:45.1503756Z DEBUG Program log: Instruction: ClaimWithSignature
-2026-11-10T13:01:45.1505544Z DEBUG Program 11111111111111111111111111111111 invoke [2]
-2026-11-10T13:01:45.1507442Z DEBUG Program log: Allocate: account Address { address: Bz9QHxQS9yUeB3dqcGkEFi2FzFmUSAE8JU9G9dn4jQvF, base: None } already in use
-2026-11-10T13:01:45.1509711Z DEBUG Program 11111111111111111111111111111111 failed: custom program error: 0x0
-2026-11-10T13:01:45.1513149Z DEBUG Program BbyrsYvVu6eTh7CGBaFfbJgS6Q7C8zQy1NfxA3Ne9xbt failed: custom program error: 0x0
-2026-11-10T13:01:45.1513891Z     ✔ refuses claiming via signature if already claimed via Merkle proof
+2026-11-10T13:48:22.9822823Z DEBUG Program BbyrsYvVu6eTh7CGBaFfbJgS6Q7C8zQy1NfxA3Ne9xbt invoke [1]
+2026-11-10T13:48:22.9824261Z DEBUG Program log: Instruction: ClaimWithSignature
+2026-11-10T13:48:22.9825298Z DEBUG Program 11111111111111111111111111111111 invoke [2]
+2026-11-10T13:48:22.9826315Z DEBUG Allocate: account Address { address: 82j1C913oU9u9fLqJdcmwJ4yS9oE6r7fP7mD8tY3a1bC, base: None } already in use
+2026-11-10T13:48:22.9827318Z DEBUG Program 11111111111111111111111111111111 failed: custom program error: 0x0
+2026-11-10T13:48:22.9830021Z DEBUG Program BbyrsYvVu6eTh7CGBaFfbJgS6Q7C8zQy1NfxA3Ne9xbt failed: custom program error: 0x0
+2026-11-10T13:48:22.9834767Z     ✔ refuses claiming via signature if already claimed via Merkle proof
 ```
 
 #### Scenario 3: Signature then Merkle Cross-Path Guard
-Claiming via signature first, then attempting to claim via Merkle proof:
+Claiming via signature first, then attempting to claim via Merkle proof fails:
 
 ```text
-2026-11-10T13:01:45.3056156Z DEBUG Program BbyrsYvVu6eTh7CGBaFfbJgS6Q7C8zQy1NfxA3Ne9xbt invoke [1]
-2026-11-10T13:01:45.3057868Z DEBUG Program log: Instruction: Claim
-2026-11-10T13:01:45.3059424Z DEBUG Program 11111111111111111111111111111111 invoke [2]
-2026-11-10T13:01:45.3060775Z DEBUG Program log: Allocate: account Address { address: EXZmeaosgwMq4fHUjTCFTGBGQKXA4Zc3xPh3Ynz8No1m, base: None } already in use
-2026-11-10T13:01:45.3062300Z DEBUG Program 11111111111111111111111111111111 failed: custom program error: 0x0
-2026-11-10T13:01:45.3065317Z DEBUG Program BbyrsYvVu6eTh7CGBaFfbJgS6Q7C8zQy1NfxA3Ne9xbt failed: custom program error: 0x0
-2026-11-10T13:01:45.3074033Z     ✔ refuses claiming via Merkle proof if already claimed via signature
+2026-11-10T13:48:23.1163761Z DEBUG Program BbyrsYvVu6eTh7CGBaFfbJgS6Q7C8zQy1NfxA3Ne9xbt invoke [1]
+2026-11-10T13:48:23.1165046Z DEBUG Program log: Instruction: Claim
+2026-11-10T13:48:23.1166407Z DEBUG Program 11111111111111111111111111111111 invoke [2]
+2026-11-10T13:48:23.1168121Z DEBUG Allocate: account Address { address: EPCX1gfvxgW9STb4yTQcdsd4yzNx68BBES4VKv3fZTJq, base: None } already in use
+2026-11-10T13:48:23.1170191Z DEBUG Program 11111111111111111111111111111111 failed: custom program error: 0x0
+2026-11-10T13:48:23.1173561Z DEBUG Program BbyrsYvVu6eTh7CGBaFfbJgS6Q7C8zQy1NfxA3Ne9xbt failed: custom program error: 0x0
+2026-11-10T13:48:23.1174803Z     ✔ refuses claiming via Merkle proof if already claimed via signature
 ```
 
 #### Scenario 4: Signature Double-Claim
-Calling `claim_with_signature` twice for the same claimant:
+Calling `claim_with_signature` twice for the same claimant fails:
 
 ```text
-2026-11-10T13:01:45.4793973Z DEBUG Program BbyrsYvVu6eTh7CGBaFfbJgS6Q7C8zQy1NfxA3Ne9xbt invoke [1]
-2026-11-10T13:01:45.4795812Z DEBUG Program log: Instruction: ClaimWithSignature
-2026-11-10T13:01:45.4797823Z DEBUG Program 11111111111111111111111111111111 invoke [2]
-2026-11-10T13:01:45.4800554Z DEBUG Program log: Allocate: account Address { address: 9EJsooJWDQTDXFLWjD6syr8F4RyKX8jdoJTxXrDh1QgG, base: None } already in use
-2026-11-10T13:01:45.4803153Z DEBUG Program 11111111111111111111111111111111 failed: custom program error: 0x0
-2026-11-10T13:01:45.4807436Z DEBUG Program BbyrsYvVu6eTh7CGBaFfbJgS6Q7C8zQy1NfxA3Ne9xbt failed: custom program error: 0x0
-2026-11-10T13:01:45.4810390Z     ✔ refuses claiming twice via signature
+2026-11-10T13:48:23.2784539Z DEBUG Program BbyrsYvVu6eTh7CGBaFfbJgS6Q7C8zQy1NfxA3Ne9xbt invoke [1]
+2026-11-10T13:48:23.2786034Z DEBUG Program log: Instruction: ClaimWithSignature
+2026-11-10T13:48:23.2787311Z DEBUG Program 11111111111111111111111111111111 invoke [2]
+2026-11-10T13:48:23.2788931Z DEBUG Allocate: account Address { address: EfqNBK9vqizvCgc49SvxdingmHVdqem8bdpr5MDyR6te, base: None } already in use
+2026-11-10T13:48:23.2790557Z DEBUG Program 11111111111111111111111111111111 failed: custom program error: 0x0
+2026-11-10T13:48:23.2792536Z DEBUG Program BbyrsYvVu6eTh7CGBaFfbJgS6Q7C8zQy1NfxA3Ne9xbt failed: custom program error: 0x0
+2026-11-10T13:48:23.2801408Z     ✔ refuses claiming twice via signature
 ```
 
 ---
@@ -140,27 +141,21 @@ Calling `claim_with_signature` twice for the same claimant:
 ### Criterion 14 — Cross-User Signature Replay Evidence
 
 ```text
-2026-11-10T13:01:45.794625294Z DEBUG solana_runtime::message_processor::stable_log] Program 11111111111111111111111111111111 invoke [2]
-2026-11-10T13:01:45.794634521Z DEBUG solana_runtime::message_processor::stable_log] Program 11111111111111111111111111111111 success
-2026-11-10T13:01:45.794640833Z DEBUG solana_runtime::message_processor::stable_log] Program log: Initialize the associated token account
-2026-11-10T13:01:45.7991614Z DEBUG Program ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL success
-2026-11-10T13:01:45.8029073Z DEBUG Program BbyrsYvVu6eTh7CGBaFfbJgS6Q7C8zQy1NfxA3Ne9xbt invoke [1]
-2026-11-10T13:01:45.8032043Z DEBUG Program log: Instruction: ClaimWithSignature
-2026-11-10T13:01:45.8033822Z DEBUG Program 11111111111111111111111111111111 invoke [2]
-2026-11-10T13:01:45.8036037Z DEBUG Program 11111111111111111111111111111111 success
-2026-11-10T13:01:45.8038785Z DEBUG Program log: AnchorError thrown in programs/04-merkle-airdrop/src/instructions/claim_with_signature.rs:110. Error Code: InvalidSignatureMessage. Error Number: 6004. Error Message: Invalid signature message.
-2026-11-10T13:01:45.8042454Z DEBUG Program BbyrsYvVu6eTh7CGBaFfbJgS6Q7C8zQy1NfxA3Ne9xbt consumed 18551 of 400000 compute units
-2026-11-10T13:01:45.8044659Z DEBUG Program BbyrsYvVu6eTh7CGBaFfbJgS6Q7C8zQy1NfxA3Ne9xbt failed: custom program error: 0x1774
-2026-11-10T13:01:45.8095938Z DEBUG Program BbyrsYvVu6eTh7CGBaFfbJgS6Q7C8zQy1NfxA3Ne9xbt invoke [1]
-2026-11-10T13:01:45.8098248Z DEBUG Program log: Instruction: ClaimWithSignature
-2026-11-10T13:01:45.8101240Z DEBUG Program log: AnchorError caused by account: claim. Error Code: ConstraintSeeds. Error Number: 2006. Error Message: A seeds constraint was violated.
-2026-11-10T13:01:45.8103585Z DEBUG Program log: Left:
-2026-11-10T13:01:45.8105421Z DEBUG Program log: 51ByxP28Qf4vDYM95sVbvVTgEHvwy7oWpbMJyZeNG2WJ
-2026-11-10T13:01:45.8107386Z DEBUG Program log: Right:
-2026-11-10T13:01:45.8109206Z DEBUG Program log: 9th7n5QkmUYxTwzuo7Ng2WB1kjccgHGkgzq9ULxyjEMF
-2026-11-10T13:01:45.8111877Z DEBUG Program BbyrsYvVu6eTh7CGBaFfbJgS6Q7C8zQy1NfxA3Ne9xbt consumed 10183 of 400000 compute units
-2026-11-10T13:01:45.8114749Z DEBUG Program BbyrsYvVu6eTh7CGBaFfbJgS6Q7C8zQy1NfxA3Ne9xbt failed: custom program error: 0x7d6
-2026-11-10T13:01:45.8117012Z     ✔ there is a test that signature for one user cannot be used by another (cross-user signature replay)
+2026-11-10T13:48:23.5412020Z DEBUG Program log: Initialize the associated token account
+2026-11-10T13:48:23.5563639Z DEBUG Program ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL success
+2026-11-10T13:48:23.5602172Z DEBUG Program BbyrsYvVu6eTh7CGBaFfbJgS6Q7C8zQy1NfxA3Ne9xbt invoke [1]
+2026-11-10T13:48:23.5603548Z DEBUG Program log: Instruction: ClaimWithSignature
+2026-11-10T13:48:23.5604797Z DEBUG Program 11111111111111111111111111111111 invoke [2]
+2026-11-10T13:48:23.5606157Z DEBUG Program 11111111111111111111111111111111 success
+2026-11-10T13:48:23.5608407Z DEBUG Program log: AnchorError thrown in programs/04-merkle-airdrop/src/instructions/claim_with_signature.rs:110. Error Code: InvalidSignatureMessage. Error Number: 6004. Error Message: Invalid signature message.
+2026-11-10T13:48:23.5611180Z DEBUG Program BbyrsYvVu6eTh7CGBaFfbJgS6Q7C8zQy1NfxA3Ne9xbt consumed 20051 of 400000 compute units
+2026-11-10T13:48:23.5612998Z DEBUG Program BbyrsYvVu6eTh7CGBaFfbJgS6Q7C8zQy1NfxA3Ne9xbt failed: custom program error: 0x1774
+2026-11-10T13:48:23.5653274Z DEBUG Program BbyrsYvVu6eTh7CGBaFfbJgS6Q7C8zQy1NfxA3Ne9xbt invoke [1]
+2026-11-10T13:48:23.5671610Z DEBUG Program log: Instruction: ClaimWithSignature
+2026-11-10T13:48:23.5672742Z DEBUG Program log: AnchorError caused by account: claim. Error Code: ConstraintSeeds. Error Number: 2006. Error Message: A seeds constraint was violated.
+2026-11-10T13:48:23.5675401Z DEBUG Program BbyrsYvVu6eTh7CGBaFfbJgS6Q7C8zQy1NfxA3Ne9xbt consumed 11683 of 400000 compute units
+2026-11-10T13:48:23.5677012Z DEBUG Program BbyrsYvVu6eTh7CGBaFfbJgS6Q7C8zQy1NfxA3Ne9xbt failed: custom program error: 0x7d6
+2026-11-10T13:48:23.5665214Z     ✔ there is a test that signature for one user cannot be used by another (cross-user signature replay)
 ```
 
-Link to official GitHub Actions run: [GitHub Actions Run #23 (ID 42819872329)](https://github.com/ShivamKashyap966/redduck-academy-solana-template/actions/runs/42819872329)
+Link to official GitHub Actions run: [GitHub Actions Run #24 (ID 42827107641)](https://github.com/ShivamKashyap966/redduck-academy-solana-template/actions/runs/42827107641)
